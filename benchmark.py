@@ -37,9 +37,11 @@ class Presser:
         if shuffle_urls and self.urls:
             shuffle(self.urls)
 
+        self.urls = self.urls or [self.url]
+
 
     def validate(self):
-        if not self.url or len(self.urls) == 0:
+        if not self.urls:
             print 'Please provide URL(s) for HTTP benchmarking'
 
         if self.method not in self.allowed_methods:
@@ -79,8 +81,7 @@ class Presser:
     def run_benchmark(self):
         self.validate()
         if self.method == 'GET':
-            urls = self.urls or [self.url]
-            for url in urls:
+            for url in self.urls:
                 url = self._prepare_url(url)
                 for i in range(self.repeats):
                     self.start_measure()
