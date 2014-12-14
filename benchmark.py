@@ -14,6 +14,7 @@ class Presser:
         self.urls = []
         self.options = options
         self.method = getattr(self.options, 'method', 'GET') or 'GET'
+        self.repeats = getattr(self.options, 'requests', 1)
         scenario_path = getattr(options, 'scenario', None)
         url_list = getattr(self.options, 'url_list', None)
         shuffle_urls = getattr(self.options, 'random', None)
@@ -81,10 +82,11 @@ class Presser:
             urls = self.urls or [self.url]
             for url in urls:
                 url = self._prepare_url(url)
-                self.start_measure()
-                r = requests.get(url)
-                # checking if status code is 4xx or 5xx
-                if r.status_code >= 400:
-                    print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
-                spent_time = self.stop_measure()
-                print '%s - %.2fs' % (url, spent_time)
+                for i in range(self.repeats):
+                    self.start_measure()
+                    r = requests.get(url)
+                    # checking if status code is 4xx or 5xx
+                    if r.status_code >= 400:
+                        print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+                    spent_time = self.stop_measure()
+                    print '%s - %.2fs' % (url, spent_time)
