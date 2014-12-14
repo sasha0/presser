@@ -15,6 +15,9 @@ class Presser:
         self.options = options
         self.method = getattr(self.options, 'method', 'GET') or 'GET'
         self.repeats = getattr(self.options, 'requests', 1)
+        self.auth_user = getattr(self.options, 'auth_user', None)
+        self.auth_password = getattr(self.options, 'auth_password', None)
+        self.auth = (self.auth_user, self.auth_password)
         scenario_path = getattr(options, 'scenario', None)
         url_list = getattr(self.options, 'url_list', None)
         shuffle_urls = getattr(self.options, 'random', None)
@@ -42,11 +45,14 @@ class Presser:
 
     def validate(self):
         if not self.urls:
-            print 'Please provide URL(s) for HTTP benchmarking'
+            print 'Please provide URL(s) for HTTP benchmarking.'
 
         if self.method not in self.allowed_methods:
             print 'Request method "%s" is not supported. Please do %s requests.' % (self.method,
                                                                                     ','.join(self.allowed_methods))
+
+        if any(self.auth) and not all(self.auth):
+            print 'Please provide both login ans password for HTTP authorization.'
 
 
     def _prepare_url(self, url):
@@ -85,7 +91,10 @@ class Presser:
                 url = self._prepare_url(url)
                 for i in range(self.repeats):
                     self.start_measure()
-                    r = requests.get(url)
+                    params = {}
+                    if self.auth:
+                        params['auth'] = self.auth
+                    r = requests.get(url, **params)
                     # checking if status code is 4xx or 5xx
                     if r.status_code >= 400:
                         print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
