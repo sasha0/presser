@@ -6,14 +6,19 @@ import simplejson
 import requests
 from constants import HTTP_RESPONSE_CODES
 
+
+METHODS_MAPPING = {'GET', requests.get,
+                   }
+
+
 class Presser:
-    allowed_methods = ['GET', 'POST']
+    allowed_methods = ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']
 
     def __init__(self, url, options):
         self.url = url
         self.urls = []
         self.options = options
-        self.method = getattr(self.options, 'method', 'GET') or 'GET'
+        self.method = getattr(self.options, 'method', 'get') or 'get'
         self.repeats = getattr(self.options, 'requests', 1)
         self.auth_user = getattr(self.options, 'auth_user', None)
         self.auth_password = getattr(self.options, 'auth_password', None)
@@ -86,17 +91,17 @@ class Presser:
 
     def run_benchmark(self):
         self.validate()
-        if self.method == 'GET':
-            for url in self.urls:
-                url = self._prepare_url(url)
-                for i in range(self.repeats):
-                    self.start_measure()
-                    params = {}
-                    if self.auth:
-                        params['auth'] = self.auth
-                    r = requests.get(url, **params)
-                    # checking if status code is 4xx or 5xx
-                    if r.status_code >= 400:
-                        print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
-                    spent_time = self.stop_measure()
-                    print '%s - %.2fs' % (url, spent_time)
+        request_method = getattr(requests, self.method, None)
+        for url in self.urls:
+            url = self._prepare_url(url)
+            for i in range(self.repeats):
+                self.start_measure()
+                params = {}
+                if self.auth:
+                    params['auth'] = self.auth
+                r = request_method(url, **params)
+                # checking if status code is 4xx or 5xx
+                if r.status_code >= 400:
+                    print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+                spent_time = self.stop_measure()
+                print '%s - %.2fs' % (url, spent_time)
