@@ -1,0 +1,3 @@
+[
+    {'method': 'POST', 'auth': {'login': 'someuser', 'password': 'pass'}, 'URL': 'http://localhost', 'timeout': 50}                        
+]
