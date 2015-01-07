@@ -23,6 +23,7 @@ class Presser:
         self.auth_user = getattr(self.options, 'auth_user', None)
         self.auth_password = getattr(self.options, 'auth_password', None)
         self.auth = (self.auth_user, self.auth_password)
+        self.follow_redirection = getattr(self.options, 'follow_redirection', False)
         scenario_path = getattr(options, 'scenario', None)
         url_list = getattr(self.options, 'url_list', None)
         shuffle_urls = getattr(self.options, 'random', None)
@@ -96,7 +97,7 @@ class Presser:
             url = self._prepare_url(url)
             for i in range(self.repeats):
                 self.start_measure()
-                params = {}
+                params = {'allow_redirects': self.follow_redirection}
                 if self.auth:
                     params['auth'] = self.auth
                 r = request_method(url, **params)
