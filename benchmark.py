@@ -7,10 +7,6 @@ import requests
 from constants import HTTP_RESPONSE_CODES
 
 
-METHODS_MAPPING = {'GET', requests.get,
-                   }
-
-
 class Presser:
     allowed_methods = ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']
 
@@ -50,6 +46,8 @@ class Presser:
 
 
     def validate(self):
+        """Making sure all provided parameters correct."""
+
         if not self.urls:
             print 'Please provide URL(s) for HTTP benchmarking.'
 
@@ -62,12 +60,16 @@ class Presser:
 
 
     def _prepare_url(self, url):
+        """Prepending URL schema, if missing."""
+
         parsed_url = urlparse(url)
         if not parsed_url.scheme:
             url = 'http://' + url
         return url
 
     def _load_scenario(self, scenario_path):
+        """Parsing JSON file with scenario, which contains options for batch benchmark testing."""
+
         f = open(scenario_path, 'r')
         content = f.read()
         content = '"' + content + '"'
@@ -78,6 +80,8 @@ class Presser:
         return scenario
 
     def _load_url_list(self, url_list):
+        """Parsing test file with list of URLs, separated with linebreak."""
+
         f = open(url_list, 'r')
         content = f.read()
         urls = content.split('\n')
@@ -91,6 +95,8 @@ class Presser:
         return time() - self.start_time
 
     def run_benchmark(self):
+        """Loading and validating options, doing performance testing actually."""
+
         self.validate()
         request_method = getattr(requests, self.method, None)
         for url in self.urls:
