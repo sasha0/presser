@@ -20,19 +20,15 @@ class Presser:
         self.auth_password = getattr(self.options, 'auth_password', None)
         self.auth = (self.auth_user, self.auth_password)
         self.follow_redirection = getattr(self.options, 'follow_redirection', False)
+        self.timeout = getattr(self.options, 'timeout', None)
+        self.scenarios = []
         scenario_path = getattr(options, 'scenario', None)
         url_list = getattr(self.options, 'url_list', None)
         shuffle_urls = getattr(self.options, 'random', None)
 
         # loading list of URLs, credentials and other settings from JSON file
         if scenario_path:
-            urls = self._load_scenario(scenario_path)
-            for u in urls:
-                u = self._prepare_url(u)
-                r = requests.get(u)
-                # checking if status code is 4xx or 5xx
-                if r.status_code >= 400:
-                    print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+            self.scenarios = self._load_scenario(scenario_path)
 
         # loading list of URLs from text file
         if url_list:
@@ -76,8 +72,18 @@ class Presser:
         content = content.replace('\n', '')
         content = content.replace('\r', '')
         content = content.replace('\t', '')
-        scenario = simplejson.loads(content)
-        return scenario
+        scenario_data = simplejson.loads(content)
+        scenarios = []
+        for params in scenario_data:
+            url = params.get('url', None)
+            method = params.get('method', 'get') or 'get'
+            repeats = params.get('repeats', 1)
+            follow_redirection = params.get('follow_redirection', False)
+            scenarios.append({'url': url,
+                              'method': method,
+                              'repeats': repeats,
+                              'follow_redirection': follow_redirection})
+        return scenarios
 
     def _load_url_list(self, url_list):
         """Parsing test file with list of URLs, separated with linebreak."""
@@ -94,21 +100,33 @@ class Presser:
     def stop_measure(self):
         return time() - self.start_time
 
+    def measure_request_time(self, url, request_method, **params):
+        self.start_measure()
+        r = request_method(url, **params)
+        # checking if status code is 4xx or 5xx
+        if r.status_code >= 400:
+            print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+        spent_time = self.stop_measure()
+        print '%s - %.2fs' % (url, spent_time)
+
     def run_benchmark(self):
         """Loading and validating options, doing performance testing actually."""
 
         self.validate()
-        request_method = getattr(requests, self.method, None)
-        for url in self.urls:
-            url = self._prepare_url(url)
-            for i in range(self.repeats):
-                self.start_measure()
-                params = {'allow_redirects': self.follow_redirection}
-                if self.auth:
-                    params['auth'] = self.auth
-                r = request_method(url, **params)
-                # checking if status code is 4xx or 5xx
-                if r.status_code >= 400:
-                    print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
-                spent_time = self.stop_measure()
-                print '%s - %.2fs' % (url, spent_time)
+        if self.scenarios:
+            for scenario in self.scenarios:
+                url = self._prepare_url(scenario['url'])
+                request_method = getattr(requests, scenario['method'], None)
+                params = {'allow_redirects': scenario['follow_redirection']}
+                for i in range(self.repeats):
+                    self.measure_request_time(url, request_method, **params)
+
+        else:
+            request_method = getattr(requests, self.method, None)
+            params = {'allow_redirects': self.follow_redirection, 'timeout': self.timeout}
+            if self.auth:
+                params['auth'] = self.auth
+            for url in self.urls:
+                url = self._prepare_url(url)
+                for i in range(self.repeats):
+                    self.measure_request_time(url, request_method, **params)
