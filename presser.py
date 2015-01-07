@@ -15,10 +15,17 @@ parser.add_option('-n', '--number', dest='requests', action='store', type='int',
 parser.add_option('-u', '--auth_user', dest='auth_user', action='store', help='Username for HTTP authorization.')
 parser.add_option('-p', '--auth_password', dest='auth_password', action='store',
                   help='Password for HTTP authorization.')
+parser.add_option('-t', '--timeout', dest='timeout', action='store', help='Request timeout.')
 
 (options, args) = parser.parse_args()
 
 if __name__ == '__main__':
-    url = args[0] if len(args) > 0 else None
-    presser = Presser(url, options)
-    presser.run_benchmark()
+    # displaying help if no options or arguments provided
+    option_values = options.__dict__.values()
+    option_values = filter(None, option_values)
+    if not any([option_values, args]):
+        parser.print_help()
+    else:
+        url = args[0] if len(args) > 0 else None
+        presser = Presser(url, options)
+        presser.run_benchmark()
