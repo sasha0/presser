@@ -10,12 +10,17 @@ You can specify number for HTTP requests to given URL:
 python presser.py example.com -r 3
 ```
 
-Or provide HTTP auth credentials:
+Provide HTTP auth credentials:
 
 ```bash
 python presser.py example.com -u user -p password
 ```
 
+Or do batch testing for URLs list in text file:
+
+```
+python presser.py -l urls_list.txt
+```
 
 # Requirements
 * [requests](https://github.com/kennethreitz/requests)
