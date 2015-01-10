@@ -15,6 +15,7 @@ class Presser:
         self.urls = []
         self.options = options
         self.method = getattr(self.options, 'method', 'get') or 'get'
+        self.method = self.method.lower()
         self.repeats = getattr(self.options, 'requests', 1)
         self.auth_user = getattr(self.options, 'auth_user', None)
         self.auth_password = getattr(self.options, 'auth_password', None)
@@ -68,7 +69,6 @@ class Presser:
 
         f = open(scenario_path, 'r')
         content = f.read()
-        content = '"' + content + '"'
         content = content.replace('\n', '')
         content = content.replace('\r', '')
         content = content.replace('\t', '')
@@ -102,12 +102,16 @@ class Presser:
 
     def measure_request_time(self, url, request_method, **params):
         self.start_measure()
-        r = request_method(url, **params)
-        # checking if status code is 4xx or 5xx
-        if r.status_code >= 400:
-            print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
-        spent_time = self.stop_measure()
-        print '%s - %.2fs' % (url, spent_time)
+        try:
+            r = request_method(url, **params)
+            # checking if status code is 4xx or 5xx
+            if r.status_code >= 400:
+                print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+            spent_time = self.stop_measure()
+            print '%s - %.2fs' % (url, spent_time)
+        except Exception as e:
+            print "Trying to perform %s request to URL %s" % (request_method.__name__.upper(), url)
+            print "Got exception: %s" % e
 
     def run_benchmark(self):
         """Loading and validating options, doing performance testing actually."""
@@ -115,10 +119,20 @@ class Presser:
         self.validate()
         if self.scenarios:
             for scenario in self.scenarios:
+                params = {}
                 url = self._prepare_url(scenario['url'])
-                request_method = getattr(requests, scenario['method'], None)
-                params = {'allow_redirects': scenario['follow_redirection']}
-                for i in range(self.repeats):
+                request_method = getattr(requests, scenario['method'].lower(), None)
+                allow_redirects = scenario.get('follow_redirection', None)
+                timeout = scenario.get('timeout', None)
+                data = scenario.get('data', None)
+                repeats = scenario.get('repeats', 1)
+                if allow_redirects:
+                    params['allow_redirects'] = allow_redirects
+                if timeout:
+                    params['timeout'] = timeout
+                if data:
+                    params['data'] = data
+                for i in range(repeats):
                     self.measure_request_time(url, request_method, **params)
 
         else:
