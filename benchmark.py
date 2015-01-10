@@ -79,10 +79,12 @@ class Presser:
             method = params.get('method', 'get') or 'get'
             repeats = params.get('repeats', 1)
             follow_redirection = params.get('follow_redirection', False)
+            data = params.get('data', {})
             scenarios.append({'url': url,
                               'method': method,
                               'repeats': repeats,
-                              'follow_redirection': follow_redirection})
+                              'follow_redirection': follow_redirection,
+                              'data': data})
         return scenarios
 
     def _load_url_list(self, url_list):
