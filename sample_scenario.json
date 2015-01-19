@@ -1,5 +1,6 @@
 [
     {"method": "POST", "auth": {"login": "someuser", "password": "pass"}, "url": "http://localhost", "timeout": 50,
       "data": {"key": "value"}},
+    {"method": "GET", "url": "http://localhost/ajax", "timeout": 50, "headers": {"X-Requested-With": "XMLHttpRequest"}},
     {"method": "GET", "url": "http://google.com", "repeats": 5}
 ]
