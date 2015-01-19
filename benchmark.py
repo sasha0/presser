@@ -80,11 +80,13 @@ class Presser:
             repeats = params.get('repeats', 1)
             follow_redirection = params.get('follow_redirection', False)
             data = params.get('data', {})
+            headers = params.get('headers', {})
             scenarios.append({'url': url,
                               'method': method,
                               'repeats': repeats,
                               'follow_redirection': follow_redirection,
-                              'data': data})
+                              'data': data,
+                             'headers': headers})
         return scenarios
 
     def _load_url_list(self, url_list):
@@ -128,12 +130,15 @@ class Presser:
                 timeout = scenario.get('timeout', None)
                 data = scenario.get('data', None)
                 repeats = scenario.get('repeats', 1)
+                headers = scenario.get('headers', None)
                 if allow_redirects:
                     params['allow_redirects'] = allow_redirects
                 if timeout:
                     params['timeout'] = timeout
                 if data:
                     params['data'] = data
+                if headers:
+                    params['headers'] = headers
                 for i in range(repeats):
                     self.measure_request_time(url, request_method, **params)
 
