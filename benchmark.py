@@ -16,7 +16,7 @@ class Presser:
         self.options = options
         self.method = getattr(self.options, 'method', 'get') or 'get'
         self.method = self.method.lower()
-        self.repeats = getattr(self.options, 'requests', 1)
+        self.repeats = getattr(self.options, 'requests', 1) or 1
         self.auth_user = getattr(self.options, 'auth_user', None)
         self.auth_password = getattr(self.options, 'auth_password', None)
         self.auth = (self.auth_user, self.auth_password)
