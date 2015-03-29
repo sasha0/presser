@@ -19,7 +19,8 @@ parser.add_option('-t', '--timeout', dest='timeout', action='store', help='Reque
 
 (options, args) = parser.parse_args()
 
-if __name__ == '__main__':
+
+def main():
     # displaying help if no options or arguments provided
     option_values = options.__dict__.values()
     option_values = filter(None, option_values)
@@ -29,3 +30,7 @@ if __name__ == '__main__':
         url = args[0] if len(args) > 0 else None
         presser = Presser(url, options)
         presser.run_benchmark()
+
+
+if __name__ == '__main__':
+    main()
