@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+import json
 from random import shuffle
 from time import time
 from urlparse import urlparse
-import simplejson
 import requests
 from constants import HTTP_RESPONSE_CODES
 
@@ -72,7 +72,7 @@ class Presser:
         content = content.replace('\n', '')
         content = content.replace('\r', '')
         content = content.replace('\t', '')
-        scenario_data = simplejson.loads(content)
+        scenario_data = json.loads(content)
         scenarios = []
         for params in scenario_data:
             url = params.get('url', None)
