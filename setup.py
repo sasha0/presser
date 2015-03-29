@@ -8,6 +8,7 @@ setup(
     author='Alexander Gaevsky',
     py_modules=['benchmark', 'constants', 'presser'],
     install_requires=[
+        'grequests',
         'requests'
     ],
     entry_points={

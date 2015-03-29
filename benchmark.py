@@ -3,6 +3,8 @@ import json
 from random import shuffle
 from time import time
 from urlparse import urlparse
+
+import grequests
 import requests
 from constants import HTTP_RESPONSE_CODES
 
@@ -17,6 +19,7 @@ class Presser:
         self.method = getattr(self.options, 'method', 'get') or 'get'
         self.method = self.method.lower()
         self.repeats = getattr(self.options, 'requests', 1) or 1
+        self.concurrent_requests = getattr(self.options, 'concurrent_requests', 1) or 1
         self.auth_user = getattr(self.options, 'auth_user', None)
         self.auth_password = getattr(self.options, 'auth_password', None)
         self.auth = (self.auth_user, self.auth_password)
@@ -78,6 +81,7 @@ class Presser:
             url = params.get('url', None)
             method = params.get('method', 'get') or 'get'
             repeats = params.get('repeats', 1)
+            concurrent_requests = params.get('concurrent_requests', 1)
             follow_redirection = params.get('follow_redirection', False)
             data = params.get('data', {})
             headers = params.get('headers', {})
@@ -86,7 +90,8 @@ class Presser:
                               'repeats': repeats,
                               'follow_redirection': follow_redirection,
                               'data': data,
-                             'headers': headers})
+                              'headers': headers,
+                              'concurrent_requests': concurrent_requests})
         return scenarios
 
     def _load_url_list(self, url_list):
@@ -104,18 +109,38 @@ class Presser:
     def stop_measure(self):
         return time() - self.start_time
 
-    def measure_request_time(self, url, request_method, **params):
+    def check_response_status(self, response):
+        # checking if status code is 4xx or 5xx
+        if response.status_code >= 400:
+            status_message = HTTP_RESPONSE_CODES[response.status_code]
+            print '%s %s' % (response.status_code, status_message)
+
+    def measure_request_time(self, concurrent_requests, url, request_method_name, **params):
+        concurrent_requests = int(concurrent_requests)
+        requests_module = grequests if concurrent_requests > 1 else requests
+
+        request_method = getattr(requests_module, request_method_name, None)
+
         self.start_measure()
         try:
-            r = request_method(url, **params)
-            # checking if status code is 4xx or 5xx
-            if r.status_code >= 400:
-                print '%s %s' % (r.status_code, HTTP_RESPONSE_CODES[r.status_code])
+            if concurrent_requests > 1:
+                r = [request_method(url, **params) for i in range(concurrent_requests)]
+                responses = grequests.map(r)
+                for response in responses:
+                    self.check_response_status(response)
+            else:
+                r = request_method(url, **params)
+                self.check_response_status(r)
+
             spent_time = self.stop_measure()
             print '%s - %.2fs' % (url, spent_time)
         except Exception as e:
-            print "Trying to perform %s request to URL %s" % (request_method.__name__.upper(), url)
+            print "Trying to perform %s request to URL %s" % (request_method_name.upper(), url)
             print "Got exception: %s" % e
+
+    def measure_requests_time(self, repeats, concurrent_requests, url, request_method_name, **params):
+        for i in range(repeats):
+            self.measure_request_time(concurrent_requests, url, request_method_name, **params)
 
     def run_benchmark(self):
         """Loading and validating options, doing performance testing actually."""
@@ -125,12 +150,13 @@ class Presser:
             for scenario in self.scenarios:
                 params = {}
                 url = self._prepare_url(scenario['url'])
-                request_method = getattr(requests, scenario['method'].lower(), None)
+                request_method_name = scenario['method'].lower()
                 allow_redirects = scenario.get('follow_redirection', None)
                 timeout = scenario.get('timeout', None)
                 data = scenario.get('data', None)
                 repeats = scenario.get('repeats', 1)
                 headers = scenario.get('headers', None)
+                concurrent_requests = scenario.get('concurrent_requests', 1)
                 if allow_redirects:
                     params['allow_redirects'] = allow_redirects
                 if timeout:
@@ -139,15 +165,12 @@ class Presser:
                     params['data'] = data
                 if headers:
                     params['headers'] = headers
-                for i in range(repeats):
-                    self.measure_request_time(url, request_method, **params)
+                self.measure_requests_time(repeats, concurrent_requests, url, request_method_name, **params)
 
         else:
-            request_method = getattr(requests, self.method, None)
             params = {'allow_redirects': self.follow_redirection, 'timeout': self.timeout}
             if self.auth:
                 params['auth'] = self.auth
             for url in self.urls:
                 url = self._prepare_url(url)
-                for i in range(self.repeats):
-                    self.measure_request_time(url, request_method, **params)
+                self.measure_requests_time(self.repeats, self.concurrent_requests, url, self.method, **params)
