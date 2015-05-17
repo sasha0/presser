@@ -81,6 +81,7 @@ class Presser:
             repeats = params.get('repeats', 1)
             concurrent_requests = params.get('concurrent_requests', 1)
             follow_redirection = params.get('follow_redirection', False)
+            cookies = params.get('cookies', {})
             data = params.get('data', {})
             headers = params.get('headers', {})
             scenarios.append({'url': url,
@@ -89,7 +90,8 @@ class Presser:
                               'follow_redirection': follow_redirection,
                               'data': data,
                               'headers': headers,
-                              'concurrent_requests': concurrent_requests})
+                              'concurrent_requests': concurrent_requests,
+                              'cookies': cookies})
         return scenarios
 
     def _load_url_list(self, url_list):
@@ -117,9 +119,10 @@ class Presser:
             print '%s %s' % (response.status_code, status_message)
 
     def measure_request_time(self, concurrent_requests, url, request_method_name, **params):
+        """Making request with given parameters and calculating time, spent on request."""
+
         concurrent_requests = int(concurrent_requests)
         requests_module = grequests if concurrent_requests > 1 else requests
-
         request_method = getattr(requests_module, request_method_name, None)
 
         self.start_measure()
@@ -151,6 +154,7 @@ class Presser:
             print "Got exception: %s" % e
 
     def measure_requests_time(self, repeats, concurrent_requests, url, request_method_name, **params):
+        """Iterate through list of requests and measure loading time for each of them."""
         for i in range(repeats):
             self.measure_request_time(concurrent_requests, url, request_method_name, **params)
 
@@ -169,6 +173,7 @@ class Presser:
                 repeats = scenario.get('repeats', 1)
                 headers = scenario.get('headers', None)
                 concurrent_requests = scenario.get('concurrent_requests', 1)
+                cookies = scenario.get('cookies', {})
                 if allow_redirects:
                     params['allow_redirects'] = allow_redirects
                 if timeout:
@@ -177,6 +182,8 @@ class Presser:
                     params['data'] = data
                 if headers:
                     params['headers'] = headers
+                if cookies:
+                    params['cookies'] = cookies
                 self.measure_requests_time(repeats, concurrent_requests, url, request_method_name, **params)
 
         else:
