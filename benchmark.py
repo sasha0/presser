@@ -44,7 +44,6 @@ class Presser:
 
         self.urls = self.urls or [self.url]
 
-
     def validate(self):
         """Making sure all provided parameters correct."""
 
@@ -57,7 +56,6 @@ class Presser:
 
         if any(self.auth) and not all(self.auth):
             print 'Please provide both login ans password for HTTP authorization.'
-
 
     def _prepare_url(self, url):
         """Prepending URL schema, if missing."""
@@ -109,10 +107,13 @@ class Presser:
     def stop_measure(self):
         return time() - self.start_time
 
+    def get_status_message(self, status_code):
+        return HTTP_RESPONSE_CODES.get(status_code, 'Unknown status code')
+
     def check_response_status(self, response):
         # checking if status code is 4xx or 5xx
         if response.status_code >= 400:
-            status_message = HTTP_RESPONSE_CODES[response.status_code]
+            status_message = self.get_status_message(response.status_code)
             print '%s %s' % (response.status_code, status_message)
 
     def measure_request_time(self, concurrent_requests, url, request_method_name, **params):
@@ -123,17 +124,28 @@ class Presser:
 
         self.start_measure()
         try:
+            status_message = ''
             if concurrent_requests > 1:
                 r = [request_method(url, **params) for i in range(concurrent_requests)]
                 responses = grequests.map(r)
+                status_codes = []
                 for response in responses:
+                    status_codes.append(response.status_code)
                     self.check_response_status(response)
+                status_codes = set(status_codes)
+                status_messages = ['%s %s' % (s, self.get_status_message(s)) for s in status_codes]
+                status_message = ', '.join(status_messages)
             else:
                 r = request_method(url, **params)
                 self.check_response_status(r)
+                status_message = '%s %s' % (r.status_code, self.get_status_message(r.status_code))
 
             spent_time = self.stop_measure()
-            print '%s - %.2fs' % (url, spent_time)
+            if spent_time > 1:
+                spent_time = '%.3fs' % spent_time
+            else:
+                spent_time = '%ims' % (spent_time * 1000)
+            print '%s - %s (%s)' % (url, spent_time, status_message)
         except Exception as e:
             print "Trying to perform %s request to URL %s" % (request_method_name.upper(), url)
             print "Got exception: %s" % e
@@ -148,7 +160,7 @@ class Presser:
         self.validate()
         if self.scenarios:
             for scenario in self.scenarios:
-                params = {}
+                params = {'stream': True}
                 url = self._prepare_url(scenario['url'])
                 request_method_name = scenario['method'].lower()
                 allow_redirects = scenario.get('follow_redirection', None)
@@ -168,7 +180,7 @@ class Presser:
                 self.measure_requests_time(repeats, concurrent_requests, url, request_method_name, **params)
 
         else:
-            params = {'allow_redirects': self.follow_redirection, 'timeout': self.timeout}
+            params = {'allow_redirects': self.follow_redirection, 'timeout': self.timeout, 'stream': True}
             if self.auth:
                 params['auth'] = self.auth
             for url in self.urls:
