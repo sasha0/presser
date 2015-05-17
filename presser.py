@@ -4,8 +4,8 @@ from benchmark import Presser
                    
 parser = OptionParser()
 parser.add_option('-m', '--method', dest='method', action='store', type='string', help='POST or GET HTTP method.')
-parser.add_option('-r', '--rate', dest='rate', action='store', type="int", help='Number or requests per second.')
-parser.add_option('-c', '--concurrent-requests', dest='concurrent_requests', action='store', help='Number of concurrent requests.')
+parser.add_option('-c', '--concurrent-requests', dest='concurrent_requests', action='store',
+                  help='Number of concurrent requests.')
 parser.add_option('-q', '--random', dest='random', action='store_true', help='Do requests to list of URLs randomly.')
 parser.add_option('-l', '--list', dest='url_list', action='store', type='string', help='List of URLs for benchmarking.')
 parser.add_option('-s', '--scenario', dest='scenario', action='store', type='string',

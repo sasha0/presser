@@ -7,7 +7,7 @@ Presser is a simple command-line HTTP benchmark.
 You can specify number for HTTP requests to given URL:
 
 ```bash
-python presser.py example.com -r 3
+python presser.py example.com -n 3
 ```
 
 Provide HTTP auth credentials:
